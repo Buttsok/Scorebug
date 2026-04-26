@@ -90,8 +90,10 @@
 
     <script>
         function update() {
-            const data = JSON.parse(localStorage.getItem('vb_scoreboard_data'));
-            if (!data) return;
+            const rawData = localStorage.getItem('vb_scoreboard_data');
+            if (!rawData) return;
+            
+            const data = JSON.parse(rawData);
 
             // Text Updates
             document.getElementById('n1').innerText = data.n1;
@@ -108,13 +110,26 @@
             document.getElementById('spot-team').innerText = data.spotTeam;
 
             // Visibility / Classes
-            document.getElementById('scoreboard-wrap').className = data.bugHidden ? 'hide-bug' : '';
-            document.getElementById('sponsor-side-box').className = data.bugHidden ? 'hide-sponsor' : '';
+            // Use ClassList toggle for cleaner transitions
+            const bugWrap = document.getElementById('scoreboard-wrap');
+            const sponsorBox = document.getElementById('sponsor-side-box');
+            
+            if (data.bugHidden) {
+                bugWrap.classList.add('hide-bug');
+                sponsorBox.classList.add('hide-sponsor');
+            } else {
+                bugWrap.classList.remove('hide-bug');
+                sponsorBox.classList.remove('hide-sponsor');
+            }
+
             document.getElementById('recap-panel').classList.toggle('recap-show', data.recapShown);
             document.getElementById('point-indicator-panel').classList.toggle('point-show', data.pointShown);
             document.getElementById('point-indicator-panel').style.top = data.pointTop;
-            document.getElementById('stage-label').className = data.stageClass;
-            document.getElementById('stage-label').style.display = data.stageDisplay;
+            
+            const stageLabel = document.getElementById('stage-label');
+            stageLabel.className = data.stageClass;
+            stageLabel.style.display = data.stageDisplay;
+            
             document.getElementById('player-graphic').classList.toggle('show', data.spotShow);
             
             // Server
@@ -122,16 +137,23 @@
             document.getElementById('box2').classList.toggle('serving', data.server === 2);
 
             // Images & Scales
-            document.getElementById('view-logo1').src = data.logo1;
-            document.getElementById('view-logo2').src = data.logo2;
+            if (data.logo1) document.getElementById('view-logo1').src = data.logo1;
+            if (data.logo2) document.getElementById('view-logo2').src = data.logo2;
+            
             document.getElementById('view-logo1').style.transform = `scale(${data.logoScale1})`;
             document.getElementById('view-logo2').style.transform = `scale(${data.logoScale2})`;
-            document.getElementById('spot-logo').src = (data.server === 1) ? data.logo1 : data.logo2;
-            document.getElementById('spot-logo').style.transform = `scale(${(data.server === 1) ? data.logoScale1 : data.logoScale2})`;
+            
+            // Handle Spotlight Logo
+            const spotLogo = document.getElementById('spot-logo');
+            spotLogo.src = (data.server === 1) ? data.logo1 : data.logo2;
+            spotLogo.style.transform = `scale(${(data.server === 1) ? data.logoScale1 : data.logoScale2})`;
             
             if(data.sponsorSrc) {
-                document.getElementById('sponsor-img').src = data.sponsorSrc;
-                document.getElementById('sponsor-img').style.opacity = 1;
+                const spImg = document.getElementById('sponsor-img');
+                if (spImg.src !== data.sponsorSrc) {
+                    spImg.src = data.sponsorSrc;
+                    spImg.style.opacity = 1;
+                }
             }
 
             // Colors / Themes
@@ -142,8 +164,18 @@
             document.documentElement.style.setProperty('--spot-top-grad', data.spotGrad);
         }
 
-        window.addEventListener('storage', update);
-        setInterval(update, 100); // Polling backup
+        // The Listener: Triggers instantly when storage changes in another tab
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'vb_scoreboard_data') {
+                update();
+            }
+        });
+
+        // The Poller: Backup for OBS or browsers that don't fire storage events on current domain
+        setInterval(update, 100);
+
+        // Initial update on load
+        window.onload = update;
     </script>
 </body>
 </html>
