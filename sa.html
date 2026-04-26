@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Oswald:wght@700&family=Teko:wght@600&display=swap');
+
+        :root { 
+            --t1-grad: linear-gradient(90deg, #0044ff 0%, #001144 100%);
+            --t2-grad: linear-gradient(90deg, #cc0000 0%, #440000 100%);
+            --score-bg-grad: linear-gradient(180deg, #111111 0%, #000000 100%);
+            --score-font-color: #ffffff;
+            --set-bg-grad: linear-gradient(180deg, #333333 0%, #222222 100%);
+            --set-font-color: #ffcc00;
+            --ball-glow: rgba(255, 204, 0, 0.9);
+            --title-bg: rgba(0, 0, 0, 0.95);
+            --title-font-color: #ffffff;
+            --title-border-color: #ffcc00;
+            --spot-bg: #000000;
+            --spot-top-grad: linear-gradient(90deg, #ffcc00 0%, #ff8800 100%);
+            --spot-accent-color: #ffcc00;
+            --spot-text: #ffffff;
+            --gold-grad: linear-gradient(180deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+        }
+
+        body { background-color: transparent; font-family: 'Oswald', sans-serif; overflow: hidden; color: white; text-transform: uppercase; margin: 0; }
+        #viewport { position: absolute; top: 40px; left: 40px; display: flex; align-items: flex-start; }
+
+        #sponsor-side-box { width: 100px; height: 142px; background: transparent; margin-right: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); }
+        #sponsor-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: 0.5s; opacity: 0; }
+
+        #point-indicator-panel { 
+            background: var(--gold-grad); 
+            height: 70px; 
+            width: 250px; 
+            display: flex; 
+            align-items: center;
+            padding: 0 35px 0 20px; 
+            z-index: 1; 
+            position: absolute;
+            left: 550px; 
+            top: 0; 
+            opacity: 0; 
+            clip-path: inset(0 100% 0 0); 
+            transition: 
+                clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.4s ease,
+                top 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .point-show { clip-path: inset(0 0 0 0) !important; opacity: 1 !important; }
+        #point-label { font-size: 19px; font-weight: 900; color: #000; letter-spacing: 1px; line-height: 1.1; }
+
+        #stage-label { font-family: 'Dancing Script', cursive; font-size: 42px; font-weight: 700; text-transform: none; position: absolute; bottom: -35px; right: -40px; z-index: 20; display: none; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.9)); background-clip: text; -webkit-background-clip: text; color: transparent; pointer-events: none; text-align: right; transition: opacity 0.3s ease; }
+        .gold-text { background-image: linear-gradient(to bottom, #fceabb 0%, #fccd4d 50%, #f8b500 51%, #fbdf93 100%); display: block !important; }
+        .silver-text { background-image: linear-gradient(to bottom, #f5f7fa 0%, #c3cfe2 100%); display: block !important; }
+        .bronze-text { background-image: linear-gradient(to bottom, #f6d365 0%, #fda085 100%); display: block !important; }
+
+        @keyframes scorePulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); color: #ffcc00; } 100% { transform: scale(1); } }
+        .animate-update { animation: scorePulse 0.4s ease-out; }
+
+        #scoreboard-container { display: flex; flex-direction: column; position: relative; }
+        #main-bug-layout { display: flex; align-items: flex-start; }
+        #scoreboard-wrap { display: flex; flex-direction: column; width: 550px; filter: drop-shadow(4px 4px 10px rgba(0,0,0,0.8)); z-index: 10; transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); position: relative; }
+        .team-row { display: flex; align-items: center; height: 70px; margin-bottom: 2px; background: #111; position: relative; z-index: 10; }
+        .name-area { flex-grow: 1; height: 100%; display: flex; align-items: center; border-left: 6px solid #ffcc00; position: relative; overflow: hidden; z-index: 3; }
+        #row1 .name-area { background: var(--t1-grad); }
+        #row2 .name-area { background: var(--t2-grad); }
+        
+        .logo-img { height: 60px; width: 60px; object-fit: cover; flex-shrink: 0; margin-left: 8px; margin-right: 15px; transition: transform 0.1s ease; transform-origin: center; }
+        .team-name { font-size: 28px; letter-spacing: 1px; white-space: nowrap; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); flex-grow: 1;}
+        .to-container { margin-right: 15px; display: flex; gap: 4px; }
+        .to-dot { width: 14px; height: 6px; background: #ffcc00; transition: 0.3s; border-radius: 1px; }
+        .to-used { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(255,255,255,0.2); }
+        .sets-box { background: var(--set-bg-grad); width: 50px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--set-font-color); border-left: 1px solid #333; z-index: 3; }
+        .score-box { background: var(--score-bg-grad); width: 100px; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'Teko', sans-serif; font-size: 64px; color: var(--score-font-color); border-left: 2px solid #333; position: relative; z-index: 4; }
+
+        #title-bar { background: var(--title-bg); border-top: 3px solid var(--title-border-color); color: var(--title-font-color); padding: 6px 15px; font-size: 14px; text-align: center; letter-spacing: 2px; font-weight: bold; width: 100%; box-sizing: border-box; z-index: 11; }
+
+        .ball-anchor { position: absolute; right: -23px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; z-index: 100; pointer-events: none; }
+        .serve-ball { width: 40px; height: 40px; opacity: 0; transform: scale(0); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 0 8px var(--ball-glow)); }
+        .swirl-svg { width: 100%; height: 100%; animation: ballSpin 2s infinite linear; border-radius: 50%; border: 2px solid #000; display: block; }
+        .serving .serve-ball { opacity: 1; transform: scale(1); }
+        .hide-ball-force .serve-ball { opacity: 0 !important; transform: scale(0) !important; }
+        @keyframes ballSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        #recap-panel { background: rgba(15, 15, 15, 0.98); min-height: 142px; width: 260px; border-left: 4px solid #ffcc00; display: flex; flex-direction: column; padding: 15px; z-index: -1; opacity: 0; transform: translateX(-100%); transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); margin-top: 25px; }
+        .recap-show { transform: translateX(0) !important; opacity: 1 !important; z-index: 5 !important; }
+
+        #player-graphic { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%) translateY(250px); width: 550px; background: var(--spot-bg); border-bottom: 6px solid var(--spot-accent-color); display: flex; flex-direction: column; transition: 0.6s; opacity: 0; z-index: 100; box-shadow: 0 15px 50px rgba(0,0,0,0.9); }
+        #player-graphic.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .spotlight-top-label { background: var(--spot-top-grad); color: #000; width: 100%; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; letter-spacing: 5px; }
+        .spotlight-body { display: flex; align-items: center; padding: 15px 0; }
+        .spotlight-logo { height: 80px; width: 80px; object-fit: cover; margin: 0 25px; transition: transform 0.1s ease; transform-origin: center; }
+        .spotlight-team { color: var(--spot-accent-color); font-size: 16px; font-weight: bold; }
+        .spotlight-name { font-size: 54px; line-height: 1; font-family: 'Teko', sans-serif; color: var(--spot-text); }
+
+        #controls { position: absolute; right: 20px; top: 20px; width: 380px; background: #111; padding: 20px; border-radius: 12px; border: 1px solid #333; z-index: 999; font-size: 11px; color: white; height: 92vh; overflow-y: auto; text-transform: none; }
+        .ui-section { border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 12px; }
+        label { color: #ffcc00; margin-bottom: 4px; display: block; font-weight: bold; text-transform: uppercase; }
+        input, button { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; background: #222; color: white; border: 1px solid #444; font-weight: bold; box-sizing: border-box; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        button { cursor: pointer; text-transform: uppercase; border: none; transition: 0.2s; }
+        button:hover { filter: brightness(1.2); }
+        .picker-container { background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 8px; border: 1px solid #333; }
+        
+        .hide-bug { transform: translateX(-150%) !important; opacity: 0 !important; }
+        .hide-sponsor { transform: translateX(-250%) !important; opacity: 0 !important; }
+
+        #theme-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 420px; background: #1a1a1a; border: 2px solid #ffcc00; border-radius: 15px; padding: 25px; z-index: 2000; visibility: hidden; opacity: 0; transition: 0.3s; max-height: 85vh; overflow-y: auto; }
+        #theme-modal.active { visibility: visible; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1999; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="viewport">
+        <div id="scoreboard-container">
+            <div id="main-bug-layout">
+                <div id="sponsor-side-box"><img id="sponsor-img" src=""></div>
+                <div id="scoreboard-wrap">
+                    <div class="team-row" id="row1">
+                        <div class="name-area"><img id="view-logo1" class="logo-img" src=""><div class="team-name" id="n1">TEAM 1</div><div class="to-container" id="tos1"><div class="to-dot"></div><div class="to-dot"></div></div></div>
+                        <div class="sets-box" id="sets1">0</div>
+                        <div id="box1" class="score-box serving"><div class="ball-anchor"><div class="serve-ball"><svg class="swirl-svg" viewBox="0 0 100 100"><path d="M50,50 L50,0 A50,50 0 0,1 85.35,14.65 Z" fill="#0033aa"/><path d="M50,50 L85.35,14.65 A50,50 0 0,1 100,50 Z" fill="#ffcc00"/><path d="M50,50 L100,50 A50,50 0 0,1 85.35,85.35 Z" fill="#0033aa"/><path d="M50,50 L85.35,85.35 A50,50 0 0,1 50,100 Z" fill="#ffcc00"/><path d="M50,50 L50,100 A50,50 0 0,1 14.65,85.35 Z" fill="#0033aa"/><path d="M50,50 L14.65,85.35 A50,50 0 0,1 0,50 Z" fill="#ffcc00"/><path d="M50,50 L0,50 A50,50 0 0,1 14.65,14.65 Z" fill="#0033aa"/><path d="M50,50 L14.65,14.65 A50,50 0 0,1 50,0 Z" fill="#ffcc00"/></svg></div></div><span id="s1">0</span></div>
+                    </div>
+                    <div class="team-row" id="row2">
+                        <div class="name-area"><img id="view-logo2" class="logo-img" src=""><div class="team-name" id="n2">TEAM 2</div><div class="to-container" id="tos2"><div class="to-dot"></div><div class="to-dot"></div></div></div>
+                        <div class="sets-box" id="sets2">0</div>
+                        <div id="box2" class="score-box"><div class="ball-anchor"><div class="serve-ball"><svg class="swirl-svg" viewBox="0 0 100 100"><path d="M50,50 L50,0 A50,50 0 0,1 85.35,14.65 Z" fill="#0033aa"/><path d="M50,50 L85.35,14.65 A50,50 0 0,1 100,50 Z" fill="#ffcc00"/><path d="M50,50 L100,50 A50,50 0 0,1 85.35,85.35 Z" fill="#0033aa"/><path d="M50,50 L85.35,85.35 A50,50 0 0,1 50,100 Z" fill="#ffcc00"/><path d="M50,50 L50,100 A50,50 0 0,1 14.65,85.35 Z" fill="#0033aa"/><path d="M50,50 L14.65,85.35 A50,50 0 0,1 0,50 Z" fill="#ffcc00"/><path d="M50,50 L0,50 A50,50 0 0,1 14.65,14.65 Z" fill="#0033aa"/><path d="M50,50 L14.65,14.65 A50,50 0 0,1 50,0 Z" fill="#ffcc00"/></svg></div></div><span id="s2">0</span></div>
+                    </div>
+                    <div id="point-indicator-panel"><div id="point-label">SET POINT</div></div>
+                    <div id="title-bar">LIVE BROADCAST</div>
+                </div>
+            </div>
+            <div id="stage-label">The Finals</div>
+        </div>
+        <div id="recap-panel"><div id="recap-list">MATCH RECAP</div></div>
+    </div>
+
+    <div id="player-graphic"><div class="spotlight-top-label">SERVING</div><div class="spotlight-body"><img id="spot-logo" class="spotlight-logo" src=""><div class="spotlight-info"><div id="spot-team" class="spotlight-team">TEAM</div><div id="spot-player" class="spotlight-name">PLAYER</div></div></div></div>
+
+    <div id="controls">
+        <h2 style="text-align:center; color:#ffcc00; margin-top:0;">CONTROL PANEL</h2>
+
+        <div class="ui-section">
+            <label>SPONSOR SLIDESHOW</label>
+            <input type="file" multiple onchange="loadSponsors(event)" accept="image/*">
+        </div>
+
+        <div class="ui-section">
+            <label>LOGO SIZES</label>
+            <div class="grid-2">
+                <div><small>TEAM 1</small><input type="range" id="scale1" min="0.5" max="2.0" step="0.05" value="1.0" oninput="updateLogoSize(1, this.value)"></div>
+                <div><small>TEAM 2</small><input type="range" id="scale2" min="0.5" max="2.0" step="0.05" value="1.0" oninput="updateLogoSize(2, this.value)"></div>
+            </div>
+        </div>
+
+        <div class="ui-section">
+            <label>POINT INDICATORS</label>
+            <div class="grid-3">
+                <button style="background:#cc0000" onclick="setPointType('SET POINT')">SET</button>
+                <button style="background:#cc0000" onclick="setPointType('MATCH POINT')">MATCH</button>
+                <button style="background:#cc0000" onclick="setPointType('CHAMPIONSHIP POINT')">CHAMPION</button>
+            </div>
+            <button style="background:#fff; color:#000; margin-top:5px" onclick="togglePointIndicator()">TOGGLE POINT LABEL</button>
+        </div>
+        
+        <div class="ui-section">
+            <label>TOURNAMENT STAGE</label>
+            <div class="grid-2">
+                <button style="background:linear-gradient(#BF953F, #AA771C); color:white" onclick="setStage('finals')">THE FINALS</button>
+                <button style="background:linear-gradient(#cfd9df, #a1abb1); color:black" onclick="setStage('semi')">SEMI-FINAL</button>
+                <button style="background:linear-gradient(#804A00, #CD7F32); color:white" onclick="setStage('third')">3RD PLACE</button>
+                <button style="background:#333" onclick="setStage('none')">OFF</button>
+            </div>
+        </div>
+
+        <div class="ui-section">
+            <label>GAME CONTROLS</label>
+            <div class="grid-2">
+                <button style="background:#ff8800; color:#000" onclick="toggleBug()">TOGGLE BUG</button>
+                <button style="background:#0055ff" onclick="toggleRecap()">MATCH RECAP</button>
+            </div>
+            <button style="background:#dc3545; color:white; margin-top:5px;" onclick="resetGame()">RESET FULL GAME</button>
+        </div>
+        
+        <div class="ui-section">
+            <label>TEAM 1 SETTINGS</label>
+            <div class="picker-container"><div class="grid-2"><input type="color" id="t1-c1" value="#0044ff" oninput="updateGrad('t1')"><input type="color" id="t1-c2" value="#001144" oninput="updateGrad('t1')"></div><input type="range" min="0" max="360" value="90" id="t1-angle" oninput="updateGrad('t1')"></div>
+            <div class="grid-2"><input type="text" id="t1-name-in" placeholder="Full Name" oninput="updateNames()"><input type="text" id="t1-abbv-in" placeholder="ABBV" maxlength="4"></div>
+            <input type="file" onchange="loadLogo(event, 1)">
+            <div class="grid-3" style="margin-top:5px;"><button style="background:#28a745" onclick="changeScore(1, 1)">+1</button><button style="background:#dc3545" onclick="changeScore(1, -1)">-1</button><button onclick="callTO(1)">T.O.</button></div>
+            <button style="background:#0055ff; margin-top:5px;" onclick="winSet(1)">WIN SET</button>
+        </div>
+        
+        <div class="ui-section">
+            <label>TEAM 2 SETTINGS</label>
+            <div class="picker-container"><div class="grid-2"><input type="color" id="t2-c1" value="#cc0000" oninput="updateGrad('t2')"><input type="color" id="t2-c2" value="#440000" oninput="updateGrad('t2')"></div><input type="range" min="0" max="360" value="90" id="t2-angle" oninput="updateGrad('t2')"></div>
+            <div class="grid-2"><input type="text" id="t2-name-in" placeholder="Full Name" oninput="updateNames()"><input type="text" id="t2-abbv-in" placeholder="ABBV" maxlength="4"></div>
+            <input type="file" onchange="loadLogo(event, 2)">
+            <div class="grid-3" style="margin-top:5px;"><button style="background:#28a745" onclick="changeScore(2, 1)">+1</button><button style="background:#dc3545" onclick="changeScore(2, -1)">-1</button><button onclick="callTO(2)">T.O.</button></div>
+            <button style="background:#0055ff; margin-top:5px;" onclick="winSet(2)">WIN SET</button>
+        </div>
+        
+        <div class="ui-section">
+            <label>Strings</label>
+            <input type="text" placeholder="Title Bar Text" oninput="document.getElementById('title-bar').innerText = this.value">
+            <input type="text" id="p-input" placeholder="Player Name" style="margin-top:5px">
+            <button style="background:#ffcc00; color:black" onclick="togglePlayer()">TOGGLE SPOTLIGHT</button>
+        </div>
+        <button style="background:#333; border: 1px solid #ffcc00;" onclick="openTheme()">🎨 THEME ENGINE</button>
+    </div>
+
+    <div class="modal-overlay" id="overlay" onclick="closeTheme()"></div>
+    <div id="theme-modal">
+        <h2 style="color:#ffcc00; margin-top:0;">THEME ENGINE</h2>
+        <div class="ui-section">
+            <label>SPOTLIGHT TOP & BOTTOM BAR</label>
+            <div class="picker-container"><div class="grid-2"><input type="color" id="spot-c1" value="#ffcc00" oninput="updateGrad('spot')"><input type="color" id="spot-c2" value="#ff8800" oninput="updateGrad('spot')"></div><input type="range" min="0" max="360" value="90" id="spot-angle" oninput="updateGrad('spot')"></div>
+        </div>
+        <div class="ui-section">
+            <label>SCORE BOX GRADIENT</label>
+            <div class="picker-container"><div class="grid-2"><input type="color" id="scb-c1" value="#111111" oninput="updateGrad('scb')"><input type="color" id="scb-c2" value="#000000" oninput="updateGrad('scb')"></div><input type="range" min="0" max="360" value="180" id="scb-angle" oninput="updateGrad('scb')"></div>
+        </div>
+        <div class="ui-section">
+            <label>SET BOX GRADIENT</label>
+            <div class="picker-container"><div class="grid-2"><input type="color" id="set-c1" value="#333333" oninput="updateGrad('set')"><input type="color" id="set-c2" value="#222222" oninput="updateGrad('set')"></div><input type="range" min="0" max="360" value="180" id="set-angle" oninput="updateGrad('set')"></div>
+        </div>
+        <button style="background:#444" onclick="closeTheme()">CLOSE ENGINE</button>
+    </div>
+
+    <script>
+        let setsH = []; 
+        let currentServer = 1;
+        let sponsorImages = [];
+        let sponsorIndex = 0;
+        let sponsorInterval = null;
+
+        function updateLogoSize(team, val) {
+            document.getElementById('view-logo' + team).style.transform = `scale(${val})`;
+            if (document.getElementById('player-graphic').classList.contains('show')) {
+                document.getElementById('spot-logo').style.transform = `scale(${val})`;
+            }
+        }
+
+        function setPointType(type) { document.getElementById('point-label').innerText = type; }
+
+        function togglePointIndicator() {
+            const panel = document.getElementById('point-indicator-panel');
+            const wrap = document.getElementById('scoreboard-wrap');
+            const s1 = parseInt(document.getElementById('s1').innerText);
+            const s2 = parseInt(document.getElementById('s2').innerText);
+            panel.style.top = (s1 >= s2) ? "0px" : "72px";
+            panel.classList.toggle('point-show');
+            wrap.classList.toggle('hide-ball-force', panel.classList.contains('point-show'));
+        }
+
+        function playUpdateAnim(el) { el.classList.remove('animate-update'); void el.offsetWidth; el.classList.add('animate-update'); }
+
+        function setStage(mode) {
+            const el = document.getElementById('stage-label');
+            el.className = ''; 
+            if(mode === 'finals') { el.innerText = "The Finals"; el.classList.add('gold-text'); el.style.display = 'block'; }
+            else if(mode === 'semi') { el.innerText = "Semi-Finals"; el.classList.add('silver-text'); el.style.display = 'block'; }
+            else if(mode === 'third') { el.innerText = "Battle for 3rd"; el.classList.add('bronze-text'); el.style.display = 'block'; }
+            else { el.style.display = 'none'; }
+        }
+
+        function openTheme() { document.getElementById('theme-modal').classList.add('active'); document.getElementById('overlay').style.display='block'; }
+        function closeTheme() { document.getElementById('theme-modal').classList.remove('active'); document.getElementById('overlay').style.display='none'; }
+
+        function updateGrad(key) {
+            const c1 = document.getElementById(`${key}-c1`).value;
+            const c2 = document.getElementById(`${key}-c2`).value;
+            const ang = document.getElementById(`${key}-angle`).value;
+            const grad = `linear-gradient(${ang}deg, ${c1} 0%, ${c2} 100%)`;
+            const map = { 't1': '--t1-grad', 't2': '--t2-grad', 'spot': '--spot-top-grad', 'scb': '--score-bg-grad', 'set': '--set-bg-grad' };
+            document.documentElement.style.setProperty(map[key], grad);
+            if(key === 'spot') document.documentElement.style.setProperty('--spot-accent-color', c1);
+        }
+
+        function toggleBug() { 
+            const wrap = document.getElementById('scoreboard-wrap');
+            const sponsor = document.getElementById('sponsor-side-box');
+            const stageLabel = document.getElementById('stage-label');
+            
+            wrap.classList.toggle('hide-bug');
+            sponsor.classList.toggle('hide-sponsor');
+            
+            const isBugHidden = wrap.classList.contains('hide-bug');
+            const isRecapShown = document.getElementById('recap-panel').classList.contains('recap-show');
+
+            if (isBugHidden || isRecapShown) {
+                stageLabel.style.opacity = "0";
+            } else {
+                stageLabel.style.opacity = "1";
+            }
+        }
+        
+        function toggleRecap() { 
+            const panel = document.getElementById('recap-panel');
+            const stageLabel = document.getElementById('stage-label');
+            const wrap = document.getElementById('scoreboard-wrap');
+            
+            panel.classList.toggle('recap-show');
+            
+            const isRecapShown = panel.classList.contains('recap-show');
+            const isBugHidden = wrap.classList.contains('hide-bug');
+            
+            wrap.classList.toggle('hide-ball-force', isRecapShown);
+            
+            if (isRecapShown || isBugHidden) {
+                stageLabel.style.opacity = "0";
+            } else {
+                stageLabel.style.opacity = "1";
+            }
+        }
+
+        function updateNames() {
+            document.getElementById('n1').innerText = document.getElementById('t1-name-in').value || "TEAM 1";
+            document.getElementById('n2').innerText = document.getElementById('t2-name-in').value || "TEAM 2";
+        }
+
+        function changeScore(t, v) {
+            let el = document.getElementById('s' + t);
+            el.innerText = Math.max(0, parseInt(el.innerText) + v);
+            playUpdateAnim(el);
+            if(v > 0) {
+                currentServer = t;
+                document.getElementById('box1').classList.toggle('serving', t === 1);
+                document.getElementById('box2').classList.toggle('serving', t === 2);
+            }
+        }
+
+        function winSet(w) {
+            const abbv1 = document.getElementById('t1-abbv-in').value || "T1";
+            const abbv2 = document.getElementById('t2-abbv-in').value || "T2";
+            const s1 = document.getElementById('s1').innerText;
+            const s2 = document.getElementById('s2').innerText;
+            setsH.push(`SET ${setsH.length+1}: ${abbv1} ${s1} - ${abbv2} ${s2}`);
+            let listEl = document.getElementById('recap-list');
+            listEl.innerHTML = `<div style="border-bottom:2px solid #ffcc00; margin-bottom:12px; font-size:20px; font-weight:bold;">MATCH RECAP</div>` + 
+                              setsH.map(s => `<div style="font-size:22px; color:white; margin-bottom:4px;">${s}</div>`).join('');
+            
+            const setEl = document.getElementById('sets' + w);
+            setEl.innerText = parseInt(setEl.innerText) + 1;
+            playUpdateAnim(setEl);
+            document.getElementById('s1').innerText = "0"; document.getElementById('s2').innerText = "0";
+            const dots = document.getElementsByClassName('to-dot');
+            for(let d of dots) d.classList.remove('to-used');
+        }
+
+        function resetGame() {
+            setsH = [];
+            document.getElementById('s1').innerText = "0";
+            document.getElementById('s2').innerText = "0";
+            document.getElementById('sets1').innerText = "0";
+            document.getElementById('sets2').innerText = "0";
+            document.getElementById('recap-list').innerHTML = "MATCH RECAP";
+            const dots = document.getElementsByClassName('to-dot');
+            for(let d of dots) d.classList.remove('to-used');
+        }
+
+        function callTO(t) {
+            const container = document.getElementById('tos' + t);
+            const dots = container.getElementsByClassName('to-dot');
+            for (let i = dots.length - 1; i >= 0; i--) {
+                if (!dots[i].classList.contains('to-used')) {
+                    dots[i].classList.add('to-used');
+                    break;
+                }
+            }
+        }
+
+        function togglePlayer() {
+            const graphic = document.getElementById('player-graphic');
+            const spotLogo = document.getElementById('spot-logo');
+            document.getElementById('spot-player').innerText = document.getElementById('p-input').value || "PLAYER";
+            document.getElementById('spot-team').innerText = document.getElementById('n' + currentServer).innerText;
+            spotLogo.src = document.getElementById('view-logo' + currentServer).src;
+            const currentScale = document.getElementById('scale' + currentServer).value;
+            spotLogo.style.transform = `scale(${currentScale})`;
+            graphic.classList.toggle('show');
+        }
+
+        function loadLogo(e, t) {
+            let f = e.target.files[0];
+            if (f) {
+                let r = new FileReader();
+                r.onload = (ev) => { document.getElementById('view-logo' + t).src = ev.target.result; }
+                r.readAsDataURL(f);
+            }
+        }
+
+        function loadSponsors(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            sponsorImages = [];
+            let loaded = 0;
+            for (let f of files) {
+                let r = new FileReader();
+                r.onload = (ev) => {
+                    sponsorImages.push(ev.target.result);
+                    loaded++;
+                    if (loaded === files.length) startSlideshow();
+                }
+                r.readAsDataURL(f);
+            }
+        }
+
+        function startSlideshow() {
+            if (sponsorInterval) clearInterval(sponsorInterval);
+            sponsorIndex = 0;
+            updateSponsorDisplay();
+            if (sponsorImages.length > 1) {
+                sponsorInterval = setInterval(() => {
+                    sponsorIndex = (sponsorIndex + 1) % sponsorImages.length;
+                    updateSponsorDisplay();
+                }, 5000);
+            }
+        }
+
+        function updateSponsorDisplay() {
+            const img = document.getElementById('sponsor-img');
+            img.style.opacity = 0;
+            setTimeout(() => {
+                img.src = sponsorImages[sponsorIndex];
+                img.style.opacity = 1;
+            }, 500);
+        }
+    </script>
+</body>
+</html>
