@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Exact CSS copy from your source */
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Oswald:wght@700&family=Teko:wght@600&display=swap');
+        :root { 
+            --t1-grad: linear-gradient(90deg, #0044ff 0%, #001144 100%);
+            --t2-grad: linear-gradient(90deg, #cc0000 0%, #440000 100%);
+            --score-bg-grad: linear-gradient(180deg, #111111 0%, #000000 100%);
+            --score-font-color: #ffffff;
+            --set-bg-grad: linear-gradient(180deg, #333333 0%, #222222 100%);
+            --set-font-color: #ffcc00;
+            --ball-glow: rgba(255, 204, 0, 0.9);
+            --title-bg: rgba(0, 0, 0, 0.95);
+            --title-font-color: #ffffff;
+            --title-border-color: #ffcc00;
+            --spot-bg: #000000;
+            --spot-top-grad: linear-gradient(90deg, #ffcc00 0%, #ff8800 100%);
+            --spot-accent-color: #ffcc00;
+            --spot-text: #ffffff;
+            --gold-grad: linear-gradient(180deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+        }
+        body { background-color: transparent; font-family: 'Oswald', sans-serif; overflow: hidden; color: white; text-transform: uppercase; margin: 0; }
+        #viewport { position: absolute; top: 40px; left: 40px; display: flex; align-items: flex-start; }
+        #sponsor-side-box { width: 100px; height: 142px; background: transparent; margin-right: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); }
+        #sponsor-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: 0.5s; opacity: 0; }
+        #point-indicator-panel { background: var(--gold-grad); height: 70px; width: 250px; display: flex; align-items: center; padding: 0 35px 0 20px; z-index: 1; position: absolute; left: 550px; top: 0; opacity: 0; clip-path: inset(0 100% 0 0); transition: clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, top 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 4px 10px rgba(0,0,0,0.5); pointer-events: none; white-space: nowrap; }
+        .point-show { clip-path: inset(0 0 0 0) !important; opacity: 1 !important; }
+        #point-label { font-size: 19px; font-weight: 900; color: #000; letter-spacing: 1px; line-height: 1.1; }
+        #stage-label { font-family: 'Dancing Script', cursive; font-size: 42px; font-weight: 700; text-transform: none; position: absolute; bottom: -35px; right: -40px; z-index: 20; display: none; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.9)); background-clip: text; -webkit-background-clip: text; color: transparent; pointer-events: none; text-align: right; transition: opacity 0.3s ease; }
+        .gold-text { background-image: linear-gradient(to bottom, #fceabb 0%, #fccd4d 50%, #f8b500 51%, #fbdf93 100%); display: block !important; }
+        .silver-text { background-image: linear-gradient(to bottom, #f5f7fa 0%, #c3cfe2 100%); display: block !important; }
+        .bronze-text { background-image: linear-gradient(to bottom, #f6d365 0%, #fda085 100%); display: block !important; }
+        #scoreboard-wrap { display: flex; flex-direction: column; width: 550px; filter: drop-shadow(4px 4px 10px rgba(0,0,0,0.8)); z-index: 10; transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); position: relative; }
+        .team-row { display: flex; align-items: center; height: 70px; margin-bottom: 2px; background: #111; position: relative; z-index: 10; }
+        .name-area { flex-grow: 1; height: 100%; display: flex; align-items: center; border-left: 6px solid #ffcc00; position: relative; overflow: hidden; z-index: 3; }
+        #row1 .name-area { background: var(--t1-grad); }
+        #row2 .name-area { background: var(--t2-grad); }
+        .logo-img { height: 60px; width: 60px; object-fit: cover; flex-shrink: 0; margin-left: 8px; margin-right: 15px; }
+        .team-name { font-size: 28px; letter-spacing: 1px; white-space: nowrap; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); flex-grow: 1;}
+        .sets-box { background: var(--set-bg-grad); width: 50px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--set-font-color); border-left: 1px solid #333; z-index: 3; }
+        .score-box { background: var(--score-bg-grad); width: 100px; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'Teko', sans-serif; font-size: 64px; color: var(--score-font-color); border-left: 2px solid #333; position: relative; z-index: 4; }
+        #title-bar { background: var(--title-bg); border-top: 3px solid var(--title-border-color); color: var(--title-font-color); padding: 6px 15px; font-size: 14px; text-align: center; letter-spacing: 2px; font-weight: bold; width: 100%; box-sizing: border-box; z-index: 11; }
+        .ball-anchor { position: absolute; right: -23px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; z-index: 100; }
+        .serve-ball { width: 40px; height: 40px; opacity: 0; transform: scale(0); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 0 8px var(--ball-glow)); }
+        .swirl-svg { width: 100%; height: 100%; animation: ballSpin 2s infinite linear; border-radius: 50%; border: 2px solid #000; display: block; }
+        .serving .serve-ball { opacity: 1; transform: scale(1); }
+        @keyframes ballSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #recap-panel { background: rgba(15, 15, 15, 0.98); min-height: 142px; width: 260px; border-left: 4px solid #ffcc00; display: flex; flex-direction: column; padding: 15px; z-index: -1; opacity: 0; transform: translateX(-100%); transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); margin-top: 25px; }
+        .recap-show { transform: translateX(0) !important; opacity: 1 !important; z-index: 5 !important; }
+        #player-graphic { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%) translateY(250px); width: 550px; background: var(--spot-bg); border-bottom: 6px solid var(--spot-accent-color); display: flex; flex-direction: column; transition: 0.6s; opacity: 0; z-index: 100; box-shadow: 0 15px 50px rgba(0,0,0,0.9); }
+        #player-graphic.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .spotlight-top-label { background: var(--spot-top-grad); color: #000; width: 100%; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; letter-spacing: 5px; }
+        .spotlight-body { display: flex; align-items: center; padding: 15px 0; }
+        .spotlight-logo { height: 80px; width: 80px; object-fit: cover; margin: 0 25px; }
+        .spotlight-team { color: var(--spot-accent-color); font-size: 16px; font-weight: bold; }
+        .spotlight-name { font-size: 54px; line-height: 1; font-family: 'Teko', sans-serif; color: var(--spot-text); }
+        .hide-bug { transform: translateX(-150%) !important; opacity: 0 !important; }
+        .hide-sponsor { transform: translateX(-250%) !important; opacity: 0 !important; }
+        .hide-ball-force .serve-ball { opacity: 0 !important; transform: scale(0) !important; }
+    </style>
+</head>
+<body>
+    <div id="viewport">
+        <div id="scoreboard-container">
+            <div id="main-bug-layout">
+                <div id="sponsor-side-box"><img id="sponsor-img" src=""></div>
+                <div id="scoreboard-wrap">
+                    <div class="team-row" id="row1">
+                        <div class="name-area"><img id="view-logo1" class="logo-img" src=""><div class="team-name" id="n1">TEAM 1</div></div>
+                        <div class="sets-box" id="sets1">0</div>
+                        <div id="box1" class="score-box"><div class="ball-anchor"><div class="serve-ball"><svg class="swirl-svg" viewBox="0 0 100 100"><path d="M50,50 L50,0 A50,50 0 0,1 85.35,14.65 Z" fill="#0033aa"/><path d="M50,50 L85.35,14.65 A50,50 0 0,1 100,50 Z" fill="#ffcc00"/><path d="M50,50 L100,50 A50,50 0 0,1 85.35,85.35 Z" fill="#0033aa"/><path d="M50,50 L85.35,85.35 A50,50 0 0,1 50,100 Z" fill="#ffcc00"/><path d="M50,50 L50,100 A50,50 0 0,1 14.65,85.35 Z" fill="#0033aa"/><path d="M50,50 L14.65,85.35 A50,50 0 0,1 0,50 Z" fill="#ffcc00"/><path d="M50,50 L0,50 A50,50 0 0,1 14.65,14.65 Z" fill="#0033aa"/><path d="M50,50 L14.65,14.65 A50,50 0 0,1 50,0 Z" fill="#ffcc00"/></svg></div></div><span id="s1">0</span></div>
+                    </div>
+                    <div class="team-row" id="row2">
+                        <div class="name-area"><img id="view-logo2" class="logo-img" src=""><div class="team-name" id="n2">TEAM 2</div></div>
+                        <div class="sets-box" id="sets2">0</div>
+                        <div id="box2" class="score-box"><div class="ball-anchor"><div class="serve-ball"><svg class="swirl-svg" viewBox="0 0 100 100"><path d="M50,50 L50,0 A50,50 0 0,1 85.35,14.65 Z" fill="#0033aa"/><path d="M50,50 L85.35,14.65 A50,50 0 0,1 100,50 Z" fill="#ffcc00"/><path d="M50,50 L100,50 A50,50 0 0,1 85.35,85.35 Z" fill="#0033aa"/><path d="M50,50 L85.35,85.35 A50,50 0 0,1 50,100 Z" fill="#ffcc00"/><path d="M50,50 L50,100 A50,50 0 0,1 14.65,85.35 Z" fill="#0033aa"/><path d="M50,50 L14.65,85.35 A50,50 0 0,1 0,50 Z" fill="#ffcc00"/><path d="M50,50 L0,50 A50,50 0 0,1 14.65,14.65 Z" fill="#0033aa"/><path d="M50,50 L14.65,14.65 A50,50 0 0,1 50,0 Z" fill="#ffcc00"/></svg></div></div><span id="s2">0</span></div>
+                    </div>
+                    <div id="point-indicator-panel"><div id="point-label">SET POINT</div></div>
+                    <div id="title-bar">LIVE BROADCAST</div>
+                </div>
+            </div>
+            <div id="stage-label">The Finals</div>
+        </div>
+        <div id="recap-panel"><div id="recap-list">MATCH RECAP</div></div>
+    </div>
+    <div id="player-graphic"><div class="spotlight-top-label">SERVING</div><div class="spotlight-body"><img id="spot-logo" class="spotlight-logo" src=""><div class="spotlight-info"><div id="spot-team" class="spotlight-team">TEAM</div><div id="spot-player" class="spotlight-name">PLAYER</div></div></div></div>
+
+    <script>
+        function update() {
+            const data = JSON.parse(localStorage.getItem('vb_scoreboard_data'));
+            if (!data) return;
+
+            // Text Updates
+            document.getElementById('n1').innerText = data.n1;
+            document.getElementById('n2').innerText = data.n2;
+            document.getElementById('s1').innerText = data.s1;
+            document.getElementById('s2').innerText = data.s2;
+            document.getElementById('sets1').innerText = data.sets1;
+            document.getElementById('sets2').innerText = data.sets2;
+            document.getElementById('title-bar').innerText = data.title;
+            document.getElementById('point-label').innerText = data.pointLabel;
+            document.getElementById('recap-list').innerHTML = data.recapHTML;
+            document.getElementById('stage-label').innerText = data.stageText;
+            document.getElementById('spot-player').innerText = data.spotName;
+            document.getElementById('spot-team').innerText = data.spotTeam;
+
+            // Visibility / Classes
+            document.getElementById('scoreboard-wrap').className = data.bugHidden ? 'hide-bug' : '';
+            document.getElementById('sponsor-side-box').className = data.bugHidden ? 'hide-sponsor' : '';
+            document.getElementById('recap-panel').classList.toggle('recap-show', data.recapShown);
+            document.getElementById('point-indicator-panel').classList.toggle('point-show', data.pointShown);
+            document.getElementById('point-indicator-panel').style.top = data.pointTop;
+            document.getElementById('stage-label').className = data.stageClass;
+            document.getElementById('stage-label').style.display = data.stageDisplay;
+            document.getElementById('player-graphic').classList.toggle('show', data.spotShow);
+            
+            // Server
+            document.getElementById('box1').classList.toggle('serving', data.server === 1);
+            document.getElementById('box2').classList.toggle('serving', data.server === 2);
+
+            // Images & Scales
+            document.getElementById('view-logo1').src = data.logo1;
+            document.getElementById('view-logo2').src = data.logo2;
+            document.getElementById('view-logo1').style.transform = `scale(${data.logoScale1})`;
+            document.getElementById('view-logo2').style.transform = `scale(${data.logoScale2})`;
+            document.getElementById('spot-logo').src = (data.server === 1) ? data.logo1 : data.logo2;
+            document.getElementById('spot-logo').style.transform = `scale(${(data.server === 1) ? data.logoScale1 : data.logoScale2})`;
+            
+            if(data.sponsorSrc) {
+                document.getElementById('sponsor-img').src = data.sponsorSrc;
+                document.getElementById('sponsor-img').style.opacity = 1;
+            }
+
+            // Colors / Themes
+            document.documentElement.style.setProperty('--t1-grad', data.t1Grad);
+            document.documentElement.style.setProperty('--t2-grad', data.t2Grad);
+            document.documentElement.style.setProperty('--score-bg-grad', data.scoreGrad);
+            document.documentElement.style.setProperty('--set-bg-grad', data.setGrad);
+            document.documentElement.style.setProperty('--spot-top-grad', data.spotGrad);
+        }
+
+        window.addEventListener('storage', update);
+        setInterval(update, 100); // Polling backup
+    </script>
+</body>
+</html>
