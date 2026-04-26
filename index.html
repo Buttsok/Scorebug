@@ -21,49 +21,19 @@
             --spot-accent-color: #ffcc00;
             --spot-text: #ffffff;
             --gold-grad: linear-gradient(180deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+            /* New variable for Chroma Key */
+            --chroma-bg: #00ff00; 
         }
 
-        /* FIX: Force full viewport and transparency for server rendering */
-        html, body { 
-            background: transparent !important; 
-            background-color: rgba(0,0,0,0) !important;
-            margin: 0; 
-            padding: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            overflow: hidden; 
-            font-family: 'Oswald', sans-serif; 
-            color: white; 
-            text-transform: uppercase; 
-        }
-
+        /* Background is now controlled by the variable */
+        body { background-color: var(--chroma-bg); font-family: 'Oswald', sans-serif; overflow: hidden; color: white; text-transform: uppercase; margin: 0; }
+        
         #viewport { position: absolute; top: 40px; left: 40px; display: flex; align-items: flex-start; }
 
         #sponsor-side-box { width: 100px; height: 142px; background: transparent; margin-right: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: 0.6s cubic-bezier(0.7, 0, 0.3, 1); }
         #sponsor-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: 0.5s; opacity: 0; }
 
-        #point-indicator-panel { 
-            background: var(--gold-grad); 
-            height: 70px; 
-            width: 250px; 
-            display: flex; 
-            align-items: center;
-            padding: 0 35px 0 20px; 
-            z-index: 1; 
-            position: absolute;
-            left: 550px; 
-            top: 0; 
-            opacity: 0; 
-            clip-path: inset(0 100% 0 0); 
-            transition: 
-                clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.4s ease,
-                top 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
-            pointer-events: none;
-            white-space: nowrap;
-        }
-        
+        #point-indicator-panel { background: var(--gold-grad); height: 70px; width: 250px; display: flex; align-items: center; padding: 0 35px 0 20px; z-index: 1; position: absolute; left: 550px; top: 0; opacity: 0; clip-path: inset(0 100% 0 0); transition: clip-path 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease, top 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 4px 10px rgba(0,0,0,0.5); pointer-events: none; white-space: nowrap; }
         .point-show { clip-path: inset(0 0 0 0) !important; opacity: 1 !important; }
         #point-label { font-size: 19px; font-weight: 900; color: #000; letter-spacing: 1px; line-height: 1.1; }
 
@@ -111,7 +81,7 @@
         .spotlight-team { color: var(--spot-accent-color); font-size: 16px; font-weight: bold; }
         .spotlight-name { font-size: 54px; line-height: 1; font-family: 'Teko', sans-serif; color: var(--spot-text); }
 
-        #controls { position: fixed; right: 20px; top: 20px; width: 380px; background: #111; padding: 20px; border-radius: 12px; border: 1px solid #333; z-index: 999; font-size: 11px; color: white; height: 92vh; overflow-y: auto; text-transform: none; }
+        #controls { position: absolute; right: 20px; top: 20px; width: 380px; background: #111; padding: 20px; border-radius: 12px; border: 1px solid #333; z-index: 999; font-size: 11px; color: white; height: 92vh; overflow-y: auto; text-transform: none; }
         .ui-section { border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 12px; }
         label { color: #ffcc00; margin-bottom: 4px; display: block; font-weight: bold; text-transform: uppercase; }
         input, button { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; background: #222; color: white; border: 1px solid #444; font-weight: bold; box-sizing: border-box; }
@@ -159,6 +129,11 @@
 
     <div id="controls">
         <h2 style="text-align:center; color:#ffcc00; margin-top:0;">CONTROL PANEL</h2>
+
+        <div class="ui-section">
+            <label>CHROMA KEY COLOR</label>
+            <input type="color" id="chroma-picker" value="#00ff00" oninput="updateChroma(this.value)">
+        </div>
 
         <div class="ui-section">
             <label>SPONSOR SLIDESHOW</label>
@@ -222,7 +197,7 @@
         
         <div class="ui-section">
             <label>Strings</label>
-            <input type="text" placeholder="Title Bar Text" oninput="document.getElementById('title-bar').innerText = this.value">
+            <input type="text" placeholder="Title Bar Text" oninput="document.getElementById('title-bar').innerText = this.value; syncToOutput()">
             <input type="text" id="p-input" placeholder="Player Name" style="margin-top:5px">
             <button style="background:#ffcc00; color:black" onclick="togglePlayer()">TOGGLE SPOTLIGHT</button>
         </div>
@@ -254,14 +229,57 @@
         let sponsorIndex = 0;
         let sponsorInterval = null;
 
+        function updateChroma(val) {
+            document.documentElement.style.setProperty('--chroma-bg', val);
+            syncToOutput();
+        }
+
+        function syncToOutput() {
+            const data = {
+                n1: document.getElementById('n1').innerText,
+                n2: document.getElementById('n2').innerText,
+                s1: document.getElementById('s1').innerText,
+                s2: document.getElementById('s2').innerText,
+                sets1: document.getElementById('sets1').innerText,
+                sets2: document.getElementById('sets2').innerText,
+                title: document.getElementById('title-bar').innerText,
+                server: currentServer,
+                bugHidden: document.getElementById('scoreboard-wrap').classList.contains('hide-bug'),
+                recapShown: document.getElementById('recap-panel').classList.contains('recap-show'),
+                recapHTML: document.getElementById('recap-list').innerHTML,
+                pointShown: document.getElementById('point-indicator-panel').classList.contains('point-show'),
+                pointLabel: document.getElementById('point-label').innerText,
+                pointTop: document.getElementById('point-indicator-panel').style.top,
+                stageText: document.getElementById('stage-label').innerText,
+                stageDisplay: document.getElementById('stage-label').style.display,
+                stageClass: document.getElementById('stage-label').className,
+                logo1: document.getElementById('view-logo1').src,
+                logo2: document.getElementById('view-logo2').src,
+                logoScale1: document.getElementById('scale1').value,
+                logoScale2: document.getElementById('scale2').value,
+                spotShow: document.getElementById('player-graphic').classList.contains('show'),
+                spotName: document.getElementById('spot-player').innerText,
+                spotTeam: document.getElementById('spot-team').innerText,
+                sponsorSrc: document.getElementById('sponsor-img').src,
+                t1Grad: getComputedStyle(document.documentElement).getPropertyValue('--t1-grad'),
+                t2Grad: getComputedStyle(document.documentElement).getPropertyValue('--t2-grad'),
+                scoreGrad: getComputedStyle(document.documentElement).getPropertyValue('--score-bg-grad'),
+                setGrad: getComputedStyle(document.documentElement).getPropertyValue('--set-bg-grad'),
+                spotGrad: getComputedStyle(document.documentElement).getPropertyValue('--spot-top-grad'),
+                chromaBg: getComputedStyle(document.documentElement).getPropertyValue('--chroma-bg')
+            };
+            localStorage.setItem('vb_scoreboard_data', JSON.stringify(data));
+        }
+
         function updateLogoSize(team, val) {
             document.getElementById('view-logo' + team).style.transform = `scale(${val})`;
             if (document.getElementById('player-graphic').classList.contains('show')) {
                 document.getElementById('spot-logo').style.transform = `scale(${val})`;
             }
+            syncToOutput();
         }
 
-        function setPointType(type) { document.getElementById('point-label').innerText = type; }
+        function setPointType(type) { document.getElementById('point-label').innerText = type; syncToOutput(); }
 
         function togglePointIndicator() {
             const panel = document.getElementById('point-indicator-panel');
@@ -271,6 +289,7 @@
             panel.style.top = (s1 >= s2) ? "0px" : "72px";
             panel.classList.toggle('point-show');
             wrap.classList.toggle('hide-ball-force', panel.classList.contains('point-show'));
+            syncToOutput();
         }
 
         function playUpdateAnim(el) { el.classList.remove('animate-update'); void el.offsetWidth; el.classList.add('animate-update'); }
@@ -282,6 +301,7 @@
             else if(mode === 'semi') { el.innerText = "Semi-Finals"; el.classList.add('silver-text'); el.style.display = 'block'; }
             else if(mode === 'third') { el.innerText = "Battle for 3rd"; el.classList.add('bronze-text'); el.style.display = 'block'; }
             else { el.style.display = 'none'; }
+            syncToOutput();
         }
 
         function openTheme() { document.getElementById('theme-modal').classList.add('active'); document.getElementById('overlay').style.display='block'; }
@@ -295,48 +315,27 @@
             const map = { 't1': '--t1-grad', 't2': '--t2-grad', 'spot': '--spot-top-grad', 'scb': '--score-bg-grad', 'set': '--set-bg-grad' };
             document.documentElement.style.setProperty(map[key], grad);
             if(key === 'spot') document.documentElement.style.setProperty('--spot-accent-color', c1);
+            syncToOutput();
         }
 
         function toggleBug() { 
             const wrap = document.getElementById('scoreboard-wrap');
             const sponsor = document.getElementById('sponsor-side-box');
-            const stageLabel = document.getElementById('stage-label');
-            
             wrap.classList.toggle('hide-bug');
             sponsor.classList.toggle('hide-sponsor');
-            
-            const isBugHidden = wrap.classList.contains('hide-bug');
-            const isRecapShown = document.getElementById('recap-panel').classList.contains('recap-show');
-
-            if (isBugHidden || isRecapShown) {
-                stageLabel.style.opacity = "0";
-            } else {
-                stageLabel.style.opacity = "1";
-            }
+            syncToOutput();
         }
         
         function toggleRecap() { 
             const panel = document.getElementById('recap-panel');
-            const stageLabel = document.getElementById('stage-label');
-            const wrap = document.getElementById('scoreboard-wrap');
-            
             panel.classList.toggle('recap-show');
-            
-            const isRecapShown = panel.classList.contains('recap-show');
-            const isBugHidden = wrap.classList.contains('hide-bug');
-            
-            wrap.classList.toggle('hide-ball-force', isRecapShown);
-            
-            if (isRecapShown || isBugHidden) {
-                stageLabel.style.opacity = "0";
-            } else {
-                stageLabel.style.opacity = "1";
-            }
+            syncToOutput();
         }
 
         function updateNames() {
             document.getElementById('n1').innerText = document.getElementById('t1-name-in').value || "TEAM 1";
             document.getElementById('n2').innerText = document.getElementById('t2-name-in').value || "TEAM 2";
+            syncToOutput();
         }
 
         function changeScore(t, v) {
@@ -348,6 +347,7 @@
                 document.getElementById('box1').classList.toggle('serving', t === 1);
                 document.getElementById('box2').classList.toggle('serving', t === 2);
             }
+            syncToOutput();
         }
 
         function winSet(w) {
@@ -366,6 +366,7 @@
             document.getElementById('s1').innerText = "0"; document.getElementById('s2').innerText = "0";
             const dots = document.getElementsByClassName('to-dot');
             for(let d of dots) d.classList.remove('to-used');
+            syncToOutput();
         }
 
         function resetGame() {
@@ -377,6 +378,7 @@
             document.getElementById('recap-list').innerHTML = "MATCH RECAP";
             const dots = document.getElementsByClassName('to-dot');
             for(let d of dots) d.classList.remove('to-used');
+            syncToOutput();
         }
 
         function callTO(t) {
@@ -388,31 +390,32 @@
                     break;
                 }
             }
+            syncToOutput();
         }
 
         function togglePlayer() {
             const graphic = document.getElementById('player-graphic');
-            const spotLogo = document.getElementById('spot-logo');
             document.getElementById('spot-player').innerText = document.getElementById('p-input').value || "PLAYER";
             document.getElementById('spot-team').innerText = document.getElementById('n' + currentServer).innerText;
-            spotLogo.src = document.getElementById('view-logo' + currentServer).src;
-            const currentScale = document.getElementById('scale' + currentServer).value;
-            spotLogo.style.transform = `scale(${currentScale})`;
+            document.getElementById('spot-logo').src = document.getElementById('view-logo' + currentServer).src;
             graphic.classList.toggle('show');
+            syncToOutput();
         }
 
         function loadLogo(e, t) {
             let f = e.target.files[0];
             if (f) {
                 let r = new FileReader();
-                r.onload = (ev) => { document.getElementById('view-logo' + t).src = ev.target.result; }
+                r.onload = (ev) => { 
+                    document.getElementById('view-logo' + t).src = ev.target.result; 
+                    syncToOutput();
+                }
                 r.readAsDataURL(f);
             }
         }
 
         function loadSponsors(e) {
             const files = e.target.files;
-            if (files.length === 0) return;
             sponsorImages = [];
             let loaded = 0;
             for (let f of files) {
@@ -444,8 +447,11 @@
             setTimeout(() => {
                 img.src = sponsorImages[sponsorIndex];
                 img.style.opacity = 1;
+                syncToOutput();
             }, 500);
         }
+
+        window.onload = syncToOutput;
     </script>
 </body>
 </html>
